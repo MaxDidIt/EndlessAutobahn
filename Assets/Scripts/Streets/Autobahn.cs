@@ -7,13 +7,21 @@ using UnityEngine;
 public class Autobahn : MonoBehaviour
 {
     private List<Vector3> primaryPoints = new List<Vector3>();
+    private List<AutobahnSegment> autobahnSegments = new List<AutobahnSegment>();
 
-    public float chanceOfCurve = 0.2f;
+    [SerializeField]
+    private float chanceOfCurve = 0.2f;
 
-    public float minSegmentDistance = 3;
-    public float maxSegmentDistance = 4;
+    [SerializeField]
+    private float minSegmentDistance = 1000;
+    [SerializeField]
+    private float maxSegmentDistance = 1500;
 
-    public float maxRotation = 40;
+    [SerializeField]
+    private float maxRotation = 40;
+
+    [SerializeField]
+    private Car viewerCar;
 
     private void Start()
     {
@@ -29,6 +37,21 @@ public class Autobahn : MonoBehaviour
         {
             CreateNewPrimaryPoint();
         }
+
+        for(int i = 1; i < primaryPoints.Count - 1; i++)
+        {
+            CreateNewAutobahnSegment(primaryPoints[i - 1], primaryPoints[i], primaryPoints[i + 1]);
+        }
+    }
+
+    private void CreateNewAutobahnSegment(Vector3 primaryPointA, Vector3 primaryPointB, Vector3 primaryPointC)
+    {
+        GameObject segmentGO = new GameObject();
+        segmentGO.name = "AutobahnSegment " + primaryPointB.ToString();
+
+        AutobahnSegment segment = segmentGO.AddComponent<AutobahnSegment>();
+        segment.SetData(primaryPointA, primaryPointB, primaryPointC);
+        autobahnSegments.Add(segment);
     }
 
     private void CreateNewPrimaryPoint()

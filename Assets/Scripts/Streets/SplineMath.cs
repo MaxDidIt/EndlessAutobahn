@@ -31,15 +31,8 @@ public static class SplineMath
         return Factorial(n) / (Factorial(k) * Factorial(n - k));
     }
 
-    public static double BezierSplineWeight(int n, double t)
+    public static float BezierSplineWeight(int i, int n, float t)
     {
-        double result = 0;
-
-        for(int i = 0; i < n; i++)
-        {
-            result += BinomialCoefficient(n, i) * Math.Pow((1 - t), n - i) * Math.Pow(t, i);
-        }
-
-        return result;
+        return BinomialCoefficient(n, i) * Mathf.Pow((1 - t), n - i) * Mathf.Pow(t, i);
     }
 }

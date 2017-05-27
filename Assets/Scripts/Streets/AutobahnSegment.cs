@@ -132,14 +132,14 @@ public class AutobahnSegment : MonoBehaviour
         }
     }
 
-    private Vector3 CalculatePositionAt(float t)
+    public Vector3 CalculatePositionAt(float t)
     {
         return SplineMath.BezierSplineWeight(0, 2, t) * secondaryPointA +
                SplineMath.BezierSplineWeight(1, 2, t) * primaryPointB +
                SplineMath.BezierSplineWeight(2, 2, t) * secondaryPointB;
     }
 
-    private Vector3 CalculateDerivativeAt(float t)
+    public Vector3 CalculateDerivativeAt(float t)
     {
         return SplineMath.BezierSplineWeight(0, 1, t) * (primaryPointB - secondaryPointA) +
                SplineMath.BezierSplineWeight(1, 1, t) * (secondaryPointB - primaryPointB);

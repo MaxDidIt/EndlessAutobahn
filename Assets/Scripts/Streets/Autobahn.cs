@@ -6,6 +6,8 @@ using UnityEngine;
 
 public class Autobahn : MonoBehaviour
 {
+    private const float KMH_TO_MS = 0.277778f;
+
     private List<Vector3> primaryPoints = new List<Vector3>();
     private List<AutobahnSegment> autobahnSegments = new List<AutobahnSegment>();
 
@@ -18,10 +20,16 @@ public class Autobahn : MonoBehaviour
     private float maxSegmentDistance = 1500;
 
     [SerializeField]
+    private float heightDifference = 2;
+
+    [SerializeField]
     private float maxRotation = 40;
 
     [SerializeField]
     private Car viewerCar;
+    
+    private float currentT;
+    private AutobahnSegment currentAutobahnSegment;
 
     private void Start()
     {
@@ -41,6 +49,33 @@ public class Autobahn : MonoBehaviour
         for(int i = 1; i < primaryPoints.Count - 1; i++)
         {
             CreateNewAutobahnSegment(primaryPoints[i - 1], primaryPoints[i], primaryPoints[i + 1]);
+        }
+
+        currentAutobahnSegment = autobahnSegments[0];
+        currentT = 0;
+    }
+
+    private void FixedUpdate()
+    {
+        Vector3 position = currentAutobahnSegment.CalculatePositionAt(currentT);
+        Vector3 derivative = currentAutobahnSegment.CalculateDerivativeAt(currentT);
+
+        viewerCar.transform.position = position + currentAutobahnSegment.transform.position;
+        viewerCar.transform.rotation = Quaternion.LookRotation(derivative, Vector3.up);
+
+        currentT += (1f / derivative.magnitude) * Time.fixedDeltaTime * (viewerCar.Speed * KMH_TO_MS);
+        if (currentT > 1)
+        {
+            currentT -= 1;
+            Destroy(currentAutobahnSegment.gameObject);
+
+            primaryPoints.RemoveAt(0);
+            autobahnSegments.RemoveAt(0);
+            
+            CreateNewPrimaryPoint();
+            CreateNewAutobahnSegment(primaryPoints[primaryPoints.Count - 3], primaryPoints[primaryPoints.Count - 2], primaryPoints[primaryPoints.Count - 1]);
+
+            currentAutobahnSegment = autobahnSegments[0];
         }
     }
 
@@ -68,7 +103,9 @@ public class Autobahn : MonoBehaviour
         float distance = UnityEngine.Random.Range(minSegmentDistance, maxSegmentDistance);
         nextDirection.Normalize();
 
-        primaryPoints.Add(primaryPoints[primaryPoints.Count - 1] + nextDirection * distance);
+        Vector3 newPrimaryPoint = primaryPoints[primaryPoints.Count - 1] + nextDirection * distance;
+        newPrimaryPoint.y = UnityEngine.Random.Range(0, heightDifference);
+        primaryPoints.Add(newPrimaryPoint);
     }
 
     private void OnDrawGizmos()

@@ -6,8 +6,6 @@ using UnityEngine;
 
 public class Autobahn : MonoBehaviour
 {
-    private const float KMH_TO_MS = 0.277778f;
-
     private List<Vector3> primaryPoints = new List<Vector3>();
     private List<AutobahnSegment> autobahnSegments = new List<AutobahnSegment>();
 
@@ -27,9 +25,11 @@ public class Autobahn : MonoBehaviour
 
     [SerializeField]
     private Car viewerCar;
-    
-    private float currentT;
-    private AutobahnSegment currentAutobahnSegment;
+
+    private List<Car> npcCars = new List<Car>();
+
+    [SerializeField]
+    private GameObject npcCarPrefab;
 
     private void Start()
     {
@@ -50,32 +50,74 @@ public class Autobahn : MonoBehaviour
         {
             CreateNewAutobahnSegment(primaryPoints[i - 1], primaryPoints[i], primaryPoints[i + 1]);
         }
+        
+        viewerCar.SetData(autobahnSegments[0], 0);
+        for (int i = 0; i < 30; i++)
+        {
+            CreateNewNPCCar();
+        }
+    }
 
-        currentAutobahnSegment = autobahnSegments[0];
-        currentT = 0;
+    private void CreateNewNPCCar()
+    {
+        GameObject npcCarGo = Instantiate(npcCarPrefab);
+        npcCarGo.name = "NPCCar";
+
+        Car car = npcCarGo.GetComponent<Car>();
+
+        AutobahnSegment segment = npcCars.Count > 0 ? npcCars[npcCars.Count - 1].CurrentAutobahnSegment : viewerCar.CurrentAutobahnSegment;
+        float t = npcCars.Count > 0 ? npcCars[npcCars.Count - 1].CurrentT : viewerCar.CurrentT;
+        t += UnityEngine.Random.Range(0.01f, 0.2f);
+
+        car.SetData(segment, t);
+
+        npcCars.Add(car);
+    }
+
+    public AutobahnSegment RequestNextAutobahnSegment(AutobahnSegment segment, bool isViewer = false)
+    {
+        if (isViewer)
+        {
+            Destroy(autobahnSegments[0].gameObject);
+
+            primaryPoints.RemoveAt(0);
+            autobahnSegments.RemoveAt(0);
+
+            CreateNewPrimaryPoint();
+            CreateNewAutobahnSegment(primaryPoints[primaryPoints.Count - 3], primaryPoints[primaryPoints.Count - 2], primaryPoints[primaryPoints.Count - 1]);
+
+            return autobahnSegments[0];
+        }
+        else
+        {
+            int indexOfSegment = autobahnSegments.IndexOf(segment);
+            if (indexOfSegment + 1 == autobahnSegments.Count)
+            {
+                CreateNewPrimaryPoint();
+                CreateNewAutobahnSegment(primaryPoints[primaryPoints.Count - 3], primaryPoints[primaryPoints.Count - 2], primaryPoints[primaryPoints.Count - 1]);
+            }
+
+            return autobahnSegments[indexOfSegment + 1];
+        }
     }
 
     private void FixedUpdate()
     {
-        Vector3 position = currentAutobahnSegment.CalculatePositionAt(currentT);
-        Vector3 derivative = currentAutobahnSegment.CalculateDerivativeAt(currentT);
+        viewerCar.Move(this);
 
-        viewerCar.transform.position = position + currentAutobahnSegment.transform.position;
-        viewerCar.transform.rotation = Quaternion.LookRotation(derivative, Vector3.up);
-
-        currentT += (1f / derivative.magnitude) * Time.fixedDeltaTime * (viewerCar.Speed * KMH_TO_MS);
-        if (currentT > 1)
+        for(int i = npcCars.Count - 1; i >= 0; i--)
         {
-            currentT -= 1;
-            Destroy(currentAutobahnSegment.gameObject);
+            Car car = npcCars[i];
 
-            primaryPoints.RemoveAt(0);
-            autobahnSegments.RemoveAt(0);
-            
-            CreateNewPrimaryPoint();
-            CreateNewAutobahnSegment(primaryPoints[primaryPoints.Count - 3], primaryPoints[primaryPoints.Count - 2], primaryPoints[primaryPoints.Count - 1]);
+            if (car.CurrentAutobahnSegment == null)
+            {
+                npcCars.RemoveAt(i);
+                Destroy(car.gameObject);
+                CreateNewNPCCar();
+                continue;
+            }
 
-            currentAutobahnSegment = autobahnSegments[0];
+            car.Move(this);
         }
     }
 
